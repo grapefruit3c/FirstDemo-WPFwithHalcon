@@ -30,7 +30,7 @@
 
 ### **界面展示与布局**
 
-![img](image/图片1.png) 
+![img](image/ui_main1.png) 
 
 #### ***\*用户界面（UI）概览\****
 
@@ -50,7 +50,7 @@
 
 ####  
 
-![img](image/图片2.png) 
+![img](image/ui_main2.png) 
 
 ***\*Halcon 模板匹配与条形码读取（绿框精准定位）\****
 
