@@ -1,0 +1,163 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Software\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\core\\halconprocessor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:core\\halconprocessor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\core\\core.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:core\\core.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\core\\halconprocessor_cam2.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:core\\halconprocessor_cam2.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Desktop\\\u6D4B\u8BD5\u6587\u4EF6\u5939\\test\\cs\u6587\u4EF6\\\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\core\\hikcameramanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:core\\hikcameramanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|e:\\desktop\\\u5F00\u6E90\u9879\u76EE\\vmerkai\\halconc#\\003wpfprogam1\\myvisiondemo\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{A706E105-337A-4449-9B96-EEEC54EB5E36}|MyVisionDemo.csproj|solutionrelative:app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "MainWindow.xaml.cs",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\MainWindow.xaml.cs",
+              "RelativeToolTip": "MainWindow.xaml.cs",
+              "ViewState": "AgIAADcCAAAAAAAAAAAAAEoCAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-01T01:44:35.992Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "HalconProcessor_Cam2.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HalconProcessor_Cam2.cs",
+              "RelativeDocumentMoniker": "core\\HalconProcessor_Cam2.cs",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HalconProcessor_Cam2.cs",
+              "RelativeToolTip": "core\\HalconProcessor_Cam2.cs",
+              "ViewState": "AgIAAB0AAAAAAAAAAAA2wBAAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-05T02:02:15.627Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u6D4B\u8BD5\u6587\u4EF6\u5939\\test\\cs\u6587\u4EF6\\\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\\u6D4B\u8BD5\u6587\u4EF6\u5939\\test\\cs\u6587\u4EF6\\\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs",
+              "ToolTip": "E:\\Desktop\\\u6D4B\u8BD5\u6587\u4EF6\u5939\\test\\cs\u6587\u4EF6\\\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\\u6D4B\u8BD5\u6587\u4EF6\u5939\\test\\cs\u6587\u4EF6\\\u68C0\u6D4B\u76F8\u673A\u6EE4\u82AF\u94A2\u5708.cs",
+              "ViewState": "AgIAABACAAAAAAAAAAAAwCECAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-05T01:52:11.172Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Microsoft.Common.CurrentVersion.targets",
+              "DocumentMoniker": "D:\\Software\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ToolTip": "D:\\Software\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ViewState": "AgIAAGwJAAAAAAAAAAAWwIAJAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-08-05T02:38:19.144Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "HikCameraManager.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HikCameraManager.cs",
+              "RelativeDocumentMoniker": "core\\HikCameraManager.cs",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HikCameraManager.cs",
+              "RelativeToolTip": "core\\HikCameraManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAF0AAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-03T08:30:50.727Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "App.xaml",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\App.xaml",
+              "RelativeDocumentMoniker": "App.xaml",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\App.xaml",
+              "RelativeToolTip": "App.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-08-03T01:46:56.67Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "HalconProcessor.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HalconProcessor.cs",
+              "RelativeDocumentMoniker": "core\\HalconProcessor.cs",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\HalconProcessor.cs",
+              "RelativeToolTip": "core\\HalconProcessor.cs",
+              "ViewState": "AgIAACYAAAAAAAAAAAAcwEYAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-01T07:51:50.309Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "core.cs",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\core.cs",
+              "RelativeDocumentMoniker": "core\\core.cs",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\core\\core.cs",
+              "RelativeToolTip": "core\\core.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-01T07:20:31.416Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "MainWindow.xaml",
+              "ToolTip": "E:\\Desktop\\\u5F00\u6E90\u9879\u76EE\\VMerkai\\HalconC#\\003WPFprogam1\\MyVisionDemo\\MainWindow.xaml",
+              "RelativeToolTip": "MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-08-01T01:44:41.441Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
