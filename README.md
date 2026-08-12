@@ -30,7 +30,7 @@
 
 ### **界面展示与布局**
 
-![img](image\图片1.png) 
+![img](image/图片1.png) 
 
 #### ***\*用户界面（UI）概览\****
 
@@ -50,20 +50,20 @@
 
 ####  
 
-![img](image\图片2.png) 
+![img](image/图片2.png) 
 
 ***\*Halcon 模板匹配与条形码读取（绿框精准定位）\****
 
-![img](image\图片3.png) 
+![img](image/图片3.png) 
 
 ***\*钢圈/滤芯有无检测\****
 
 ### **上位机与 PLC 虚拟交互方案**
 
-![img](image\图片4.png)
+![img](image/图片4.png)
 图注：基于 HslCommunication 库构建的西门子 S7 协议通讯。
 
-![img](image\图片5.png) 
+![img](image/图片5.png) 
 
 图注：上位机作为客户端，成功与本地虚拟 PLC 建立心跳连接，软件实时记录 PLC 心跳状态及触发指令，并联动左侧的状态指示灯，实现视觉检测与工业控制的闭环演示。
 
