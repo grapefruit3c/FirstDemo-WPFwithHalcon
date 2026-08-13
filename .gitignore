@@ -1,0 +1,15 @@
+# 忽略 Visual Studio 生成的临时目录和编译文件
+bin/
+obj/
+.vs/
+*.user
+*.exe
+*.pdb
+*.dll
+*.cache
+# 忽略 Windows 系统生成的缩略图缓存文件
+Thumbs.db
+Desktop.ini
+
+# 忽略您的 Halcon 模板文件（保留 .shm 文件）
+!ModelID/*.shm
