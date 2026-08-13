@@ -1,5 +1,59 @@
 # 更新记录
 
+## [v2.1.0] - 2026-08-13 生产功能 + UI 优化
+
+### 新增
+
+- **ProductionLogger.cs**：CSV 生产日志记录器，每周期记录时间/条码/结果/钢圈/滤芯/匹配耗时/总耗时/图片路径，按日期分文件
+- **ImageArchiver.cs**：图像自动存档，按 `Archive/日期/OK或NG/时间戳_条码.jpg` 分目录保存，可配置是否存 OK 图、NG 图、JPG 质量
+- **DetectionStats.cs**：检测统计（OK/NG 计数、良率计算）+ 检测计时器（Stopwatch 分步计时）
+- **统计看板 UI**：良率大字显示（>95% 绿/90-95% 黄/<90% 红）、OK/NG/总数三色计数器、重置按钮
+- **检测计时面板**：左栏显示匹配耗时、条码识别耗时、总耗时
+- **顶栏时钟**：实时显示当前日期时间
+- **历史图片搜索**：按条码或日期关键字搜索存档目录中的图片
+- **配置项**：appsettings.json 新增 Archive（存档）和 Logging（日志）配置段
+
+### 修改
+
+#### UI 优化 (MainWindow.xaml)
+- 全新深色主题配色（`#1E1E2E` / `#252535` / `#0D0D15`），更现代的工业风
+- 左栏重新分区：设备状态（圆角卡片）→ 检测计时 → 操作面板
+- 右栏重新分区：检测状态 → 生产统计（良率 + OK/NG/总数）→ 操作日志 → 历史搜索
+- 中栏图像窗口边框改为圆角 + 细边
+- 所有字体/间距/圆角统一规范
+- 窗口尺寸从 1200x700 调整为 1280x750
+
+#### 功能集成 (MainWindow.xaml.cs)
+- 检测流程集成计时：每次检测记录匹配耗时和总耗时
+- 检测结果自动统计：OK/NG 实时计数 + 良率自动计算
+- 检测图片自动存档：NG 图默认保存（OK 图可选）
+- 每周期写入 CSV 生产日志
+- Halcon 窗口绘制增强：匹配框 + 十字标记 + 条码文本 + 耗时显示
+- 历史搜索功能实现：扫描 Archive 目录按关键字匹配
+
+#### 配置扩展 (AppConfig.cs)
+- 新增 `ArchiveConfig`：存档开关、根目录、OK/NG 保存控制、JPG 质量
+- 新增 `LoggingConfig`：日志开关、日志目录
+- 新增 `GetArchiveRoot()` 和 `GetLogDirectory()` 相对路径解析方法
+
+### 配置新增项
+
+```json
+"Archive": {
+  "Enabled": true,
+  "ArchiveRoot": "Archive",
+  "SaveOKImages": false,
+  "SaveNGImages": true,
+  "JpgQuality": 80
+},
+"Logging": {
+  "Enabled": true,
+  "LogDirectory": "Logs"
+}
+```
+
+---
+
 ## [v2.0.0] - 2026-08-13 代码全面优化
 
 ### 新增
@@ -12,48 +66,35 @@
 ### 修改
 
 #### 配置外部化
-- 所有硬编码路径（`E:\Desktop\测试文件夹\...`）提取到 `appsettings.json`
-- PLC 地址（IP、触发地址 M100、结果地址 M200、心跳地址 DB1.0）可配置
-- 检测参数（匹配分数 0.65、ROI 偏移量 300、面积阈值 20000、灰度阈值 70-130）可配置
-- 相机参数（循环间隔 500ms、最大日志数 300）可配置
+- 所有硬编码路径提取到 `appsettings.json`
+- PLC 地址、检测参数、相机参数全部可配置
 - `.csproj` 添加 Newtonsoft.Json 包引用和 appsettings.json / 模型文件自动复制到输出目录
 
 #### HALCON 算法层
-- **HalconProcessor.cs**：
-  - 移除 15+ 个实例字段全局变量，改用方法局部变量（线程安全）
-  - 条码模型从每次检测创建/销毁改为初始化时创建一次、运行时复用
-  - 实现 `IDisposable` 接口，规范化模型资源释放
-  - 算法参数从 AppConfig 读取
-  - 移除注释掉的废弃代码
-- **HalconProcessor_Cam2.cs**：
-  - 检测阈值参数从 AppConfig 读取
-  - 使用 HObjectExtensions 扩展方法简化代码
-  - 资源释放使用 SafeDisposeAll 统一管理
+- **HalconProcessor.cs**：移除实例字段全局变量（线程安全）、条码模型复用、IDisposable、参数从 AppConfig 读取
+- **HalconProcessor_Cam2.cs**：阈值参数配置化、扩展方法简化、SafeDisposeAll 统一释放
 
 #### 相机管理 (HikCameraManager.cs)
-- **修复 use-after-free**：`GenImage1Extern`（引用指针）改为 `GenImage1`（拷贝数据），防止海康缓冲区释放后 HImage 访问已释放内存
-- **CancellationToken 替代 Thread.Abort**：使用协作式取消替代已过时的 `Thread.Abort()`
-- 移除 `GC.Collect()` 反模式
-- 新增 `OnError` 事件通知异常，不再吞掉错误
+- 修复 use-after-free（GenImage1Extern → GenImage1 拷贝数据）
+- CancellationToken 替代 Thread.Abort
+- 移除 GC.Collect，新增 OnError 事件
 
 #### PLC 通信 (MainWindow.xaml.cs)
-- **修复双 ConnectServer bug**：原代码在 Window_Loaded 中调用了两次 `plc.ConnectServer()`，第二次创建多余连接
-- **新增断线自动重连**：心跳丢失后启动重连定时器（默认 5 秒间隔），PLC 恢复后自动恢复心跳监测
-- 触发值 256 字节序问题添加注释说明（西门子 M 区字节序差异）
-- PLC 地址从配置文件读取
+- 修复双 ConnectServer bug
+- 新增断线自动重连（5 秒间隔）
+- 触发值 256 字节序注释说明
 
 #### UI 与日志
-- 相机回调从 `Dispatcher.Invoke`（同步阻塞）改为 `Dispatcher.BeginInvoke`（异步），不阻塞采图线程
-- HImage 使用后及时 `Dispose`（`using` 模式）
-- 改进异常处理，不再用空 `catch {}` 吞掉错误
-- 日志上限从配置文件读取
+- 相机回调改用 BeginInvoke（异步）
+- HImage 规范化 Dispose
+- 改进异常处理
 
 ### 删除
-- **core.cs**：被 AppConfig.cs 替代（原文件中所有路径为硬编码个人桌面路径）
+- **core.cs**：被 AppConfig.cs 替代
 
 ### 修复
-- 模板文件 `barcode_template.shm` 配置为自动复制到输出目录（解决运行时找不到模板文件的问题）
-- PLC Rack/Slot 属性 byte 类型转换
+- 模板文件自动复制到输出目录
+- PLC Rack/Slot byte 类型转换
 
 ---
 

@@ -2,17 +2,19 @@
 
 ## C# Halcon 空滤器视觉检测系统
 
-基于 WPF + Halcon 的工业化视觉检测上位机原型系统，模拟真实产线双工位检测与 PLC 数据交互场景。单台相机分时双曝光：低曝光检测条码，高曝光检测滤芯及钢圈有无。
+基于 WPF + Halcon 的工业化视觉检测上位机系统，模拟真实产线双工位检测与 PLC 数据交互场景。单台相机分时双曝光：低曝光检测条码，高曝光检测滤芯及钢圈有无。
 
 ---
 
 ## 核心功能
 
-- **单工位双曝光协同检测**：单相机分时拍摄，低曝光完成条码读取，高曝光实现滤芯与钢圈缺陷判断
+- **单工位双曝光协同检测**：低曝光完成条码读取，高曝光实现滤芯与钢圈缺陷判断
 - **Halcon 算法集成**：形状模板匹配定位、Code 128 条码识别、Blob 分析（钢圈/滤芯有无检测）
-- **工业数据交互**：基于 HslCommunication 的西门子 S7 协议通讯，支持心跳监测、信号触发与结果回写
-- **多模式运行**：单张调试、批量循环、PLC 自动触发三种模式
-- **实时看板与日志**：检测结果实时显示、操作日志记录、OK/NG 统计
+- **工业数据交互**：西门子 S7 协议通讯，心跳监测 + 断线自动重连 + 信号触发 + 结果回写
+- **生产统计**：OK/NG 实时计数、良率自动计算（颜色预警）、检测耗时统计
+- **图像自动存档**：按 日期/OK或NG/时间戳 分目录保存，支持历史搜索
+- **生产日志 CSV**：每周期记录检测详情，按日期分文件
+- **多模式运行**：单张调试、批量循环、PLC 自动触发
 
 ---
 
@@ -20,17 +22,10 @@
 
 ![主界面](image/ui_main1.png)
 
-**界面布局**：左栏（相机连接、PLC 状态、参数调整）| 中栏（双相机采图与检测显示）| 右栏（检测结果、日志、统计）
-
-![模板匹配与条码读取](image/ui_main2.png)
-
-![钢圈/滤芯有无检测](image/图片3.png)
-
-### PLC 虚拟交互
-
-![PLC 通讯](image/图片4.png)
-
-上位机作为客户端与本地虚拟 PLC 建立心跳连接，实时记录触发指令并联动状态指示灯，实现视觉检测与工业控制的闭环。
+**三栏布局**：
+- 左栏：设备状态（相机/PLC/心跳）→ 检测计时 → 操作面板
+- 中栏：双 Halcon 窗口（条码检测 + 有无检测）
+- 右栏：检测状态 → 生产统计（良率/OK/NG/总数）→ 操作日志 → 历史搜索
 
 ---
 
@@ -38,46 +33,38 @@
 
 ```
 MyVisionDemo/
-├── appsettings.json              # 配置文件（路径、PLC、检测参数）
-├── MyVisionDemo.csproj           # 工程文件
-├── MainWindow.xaml / .xaml.cs     # 主界面与交互逻辑
+├── appsettings.json              # 配置文件（路径、PLC、检测、存档、日志参数）
+├── MyVisionDemo.csproj
+├── MainWindow.xaml / .xaml.cs     # 主界面（统计看板 + 计时 + 日志）
 ├── ModelID/
 │   └── barcode_template.shm      # Halcon 形状模板
 └── core/
-    ├── AppConfig.cs               # 配置管理（加载/保存 appsettings.json）
-    ├── HObjectExtensions.cs       # Halcon HObject 扩展方法
+    ├── AppConfig.cs               # 配置管理
+    ├── HObjectExtensions.cs       # Halcon 扩展方法
     ├── HalconProcessor.cs         # 相机1算法（形状匹配 + 条码识别）
-    ├── HalconProcessor_Cam2.cs    # 相机2算法（钢圈/滤芯有无检测）
-    └── HikCameraManager.cs        # 海康相机管理
+    ├── HalconProcessor_Cam2.cs    # 相机2算法（钢圈/滤芯检测）
+    ├── HikCameraManager.cs        # 海康相机管理
+    ├── ProductionLogger.cs         # CSV 生产日志
+    ├── ImageArchiver.cs            # 图像自动存档
+    └── DetectionStats.cs           # 统计计数 + 计时器
 ```
 
 ---
 
 ## 配置说明
 
-所有参数通过 `appsettings.json` 管理，无需修改代码：
+所有参数通过 `appsettings.json` 管理：
 
-```json
-{
-  "Paths": {
-    "TemplatePath": "ModelID/barcode_template.shm"
-  },
-  "PLC": {
-    "IpAddress": "127.0.0.1",
-    "TriggerAddress": "M100",
-    "TriggerValue": 256,
-    "ResultAddress": "M200",
-    "AutoReconnect": true
-  },
-  "Detection": {
-    "MinScore": 0.65,
-    "RoiOffset": 300,
-    "Cam2SteelRingAreaThreshold": 20000
-  }
-}
-```
+| 配置段 | 说明 | 关键参数 |
+|--------|------|---------|
+| Paths | 文件路径 | 模板路径 |
+| PLC | PLC 通信 | IP、触发地址、结果地址、心跳、自动重连 |
+| Detection | 检测算法 | 匹配分数、ROI 偏移、面积阈值、灰度阈值 |
+| Camera | 相机 | 循环间隔、最大日志数 |
+| Archive | 图像存档 | 存档开关、保存 OK/NG 图、JPG 质量 |
+| Logging | 生产日志 | 日志开关、日志目录 |
 
-首次运行时自动在 exe 目录生成默认配置文件。
+首次运行时自动在 exe 目录生成默认配置。
 
 ---
 
@@ -85,33 +72,22 @@ MyVisionDemo/
 
 | 类别 | 技术 |
 |------|------|
-| 视觉算法 | Halcon 23.05 Progress（模板匹配、条码识别、Blob 分析） |
-| 上位机 UI | WPF / XAML / MaterialDesignInXAML |
-| 工业通讯 | HslCommunication（西门子 S7 协议） |
-| 相机 SDK | 海康 MVS（MvCameraControl.Net） |
+| 视觉算法 | Halcon 23.05 Progress |
+| 上位机 UI | WPF / MaterialDesignInXAML |
+| 工业通讯 | HslCommunication（西门子 S7） |
+| 相机 SDK | 海康 MVS |
 | 开发环境 | Visual Studio 2022, .NET 8.0 |
-| 配置管理 | Newtonsoft.Json + appsettings.json |
 
 ---
 
 ## 快速开始
 
-1. **环境准备**：安装 Halcon 23.05、海康 MVS、Visual Studio 2022（含 .NET 8 SDK）
-2. **克隆仓库**：`git clone https://github.com/grapefruit3c/FirstDemo-WPFwithHalcon.git`
-3. **打开项目**：用 Visual Studio 2022 打开 `MyVisionDemo.sln`
-4. **配置 DLL 路径**：如有必要，在 `.csproj` 中修改 Halcon 和 MVS 的 `<HintPath>` 为你本机的安装路径
-5. **编译运行**：F5 启动，首次运行会在 exe 目录生成 `appsettings.json`
-6. **配置参数**：根据实际环境修改 `appsettings.json` 中的 PLC 地址、图片路径等
-
----
-
-## 架构设计
-
-- **UI 与算法分离**：Halcon 算法封装在 `core/` 目录的独立类中，与 UI 完全解耦
-- **配置外部化**：所有路径、PLC 参数、检测阈值通过 `appsettings.json` 管理
-- **资源规范化**：HObject 使用扩展方法和 `using` 模式管理生命周期，避免内存泄漏
-- **PLC 健壮性**：支持断线自动重连，心跳丢失后定时尝试恢复连接
-- **线程安全**：相机回调使用 `BeginInvoke` 异步更新 UI，检测算法使用局部变量保证线程安全
+1. 安装 Halcon 23.05、海康 MVS、Visual Studio 2022（含 .NET 8 SDK）
+2. 克隆仓库：`git clone https://github.com/grapefruit3c/FirstDemo-WPFwithHalcon.git`
+3. 用 Visual Studio 2022 打开 `MyVisionDemo.sln`
+4. 如需要，在 `.csproj` 中修改 Halcon 和 MVS 的 DLL 路径
+5. F5 编译运行，首次运行自动生成 `appsettings.json`
+6. 修改配置文件中的 PLC 地址、检测参数等
 
 ---
 
@@ -119,8 +95,6 @@ MyVisionDemo/
 
 详见 [CHANGELOG.md](CHANGELOG.md)
 
----
-
-## 项目总结
-
-本系统通过单相机工位两次拍照视觉检测的架构，展示了将 Halcon 算法集成至 C# WPF 工业软件中的完整能力。系统成功模拟了多相机协作、PLC 信号握手、视觉结果回传等典型产线场景。
+- **v2.1**：生产功能（统计/存档/CSV/计时）+ UI 深色主题优化
+- **v2.0**：代码全面优化（配置外部化/资源管理/PLC 重连/线程安全）
+- **v1.0**：初始版本

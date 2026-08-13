@@ -75,6 +75,28 @@ namespace _001Halconfirst
             return path;
         }
 
+        /// <summary>
+        /// 获取存档根目录（自动解析相对路径）
+        /// </summary>
+        public static string GetArchiveRoot()
+        {
+            string path = Current.Archive.ArchiveRoot;
+            if (!Path.IsPathRooted(path))
+                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
+            return path;
+        }
+
+        /// <summary>
+        /// 获取日志目录（自动解析相对路径）
+        /// </summary>
+        public static string GetLogDirectory()
+        {
+            string path = Current.Logging.LogDirectory;
+            if (!Path.IsPathRooted(path))
+                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
+            return path;
+        }
+
         private static ConfigModel CreateDefault()
         {
             return new ConfigModel
@@ -119,6 +141,19 @@ namespace _001Halconfirst
                 {
                     LoopIntervalMs = 500,
                     MaxLogCount = 300
+                },
+                Archive = new ArchiveConfig
+                {
+                    Enabled = true,
+                    ArchiveRoot = "Archive",
+                    SaveOKImages = false,
+                    SaveNGImages = true,
+                    JpgQuality = 80
+                },
+                Logging = new LoggingConfig
+                {
+                    Enabled = true,
+                    LogDirectory = "Logs"
                 }
             };
         }
@@ -130,6 +165,8 @@ namespace _001Halconfirst
         public PlcConfig PLC { get; set; }
         public DetectionConfig Detection { get; set; }
         public CameraConfig Camera { get; set; }
+        public ArchiveConfig Archive { get; set; }
+        public LoggingConfig Logging { get; set; }
     }
 
     public class PathsConfig
@@ -175,5 +212,20 @@ namespace _001Halconfirst
     {
         public int LoopIntervalMs { get; set; }
         public int MaxLogCount { get; set; }
+    }
+
+    public class ArchiveConfig
+    {
+        public bool Enabled { get; set; }
+        public string ArchiveRoot { get; set; }
+        public bool SaveOKImages { get; set; }
+        public bool SaveNGImages { get; set; }
+        public int JpgQuality { get; set; }
+    }
+
+    public class LoggingConfig
+    {
+        public bool Enabled { get; set; }
+        public string LogDirectory { get; set; }
     }
 }
