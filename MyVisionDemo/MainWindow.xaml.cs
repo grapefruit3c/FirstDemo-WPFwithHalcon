@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using MvCamCtrl.NET;
 using MyVisionDemo.core;
 using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -72,8 +73,8 @@ namespace MyVisionDemo
             // 初始化 PLC（只连接一次，不再重复 ConnectServer）
             plc = new SiemensS7Net(SiemensPLCS.S1200, plcCfg.IpAddress)
             {
-                Rack = plcCfg.Rack,
-                Slot = plcCfg.Slot
+                Rack = (byte)plcCfg.Rack,
+                Slot = (byte)plcCfg.Slot
             };
 
             ConnectPlc();
