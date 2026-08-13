@@ -1,180 +1,161 @@
-﻿using HalconDotNet;
+using _001Halconfirst;
+using HalconDotNet;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace MyVisionDemo.core
 {
-    // 定义全局变量，防止被垃圾回收
-
-    internal class HalconProcessor
+    /// <summary>
+    /// HALCON 图像处理器（相机1：形状匹配 + 条码识别）
+    /// 优化点：
+    /// 1. 移除实例字段全局变量，改用局部变量（线程安全）
+    /// 2. 条码模型只创建一次，运行时复用（避免每帧创建/销毁）
+    /// 3. 使用 HObjectExtensions 简化代码
+    /// 4. 规范化资源释放（using 模式 + finally）
+    /// 5. 算法参数从 AppConfig 读取（可配置）
+    /// </summary>
+    internal class HalconProcessor : IDisposable
     {
-        // Stack for temporary objects 
-        HObject[] OTemp = new HObject[20];
+        // 仅保留必要的模型 ID（线程安全的持久状态）
+        private HTuple _modelID = new HTuple();
+        private HTuple _barCodeHandle = new HTuple();
+        private bool _disposed = false;
 
-        // Local iconic variables 
-
-        HObject ho_Image, ho_ModelRegion, ho__TmpRegion;
-        HObject ho_TemplateImage, ho_MatchContour = null, ho_ROI_0 = null;
-        HObject ho_ScanROI_Matched = null, ho_SymbolRegions = null;
-
-        // Local control variables 
-
-        HTuple hv_FolderPath = new HTuple(), hv_AllFiles = new HTuple();
-        HTuple hv_ImageFiles = new HTuple(), hv_TestImages = new HTuple();
-        HTuple hv_ModelID = new HTuple(), hv_WindowHandle = new HTuple();
-        HTuple hv_Width = new HTuple(), hv_Height = new HTuple();
-        HTuple hv_i = new HTuple(), hv_MatchResultID = new HTuple();
-        HTuple hv_NumMatchResult = new HTuple(), hv_Row = new HTuple();
-        HTuple hv_Column = new HTuple(), hv_score = new HTuple();
-        HTuple hv_BarCodeHandle = new HTuple(), hv_DecodedDataStrings = new HTuple();
-        HTuple hv_result1 = new HTuple(), hv_resultstring1 = new HTuple();
+        /// <summary>
+        /// 初始化模型：加载形状模板 + 创建条码模型（只执行一次）
+        /// </summary>
         public void InitModel(string templateImagePath)
         {
+            // 加载形状匹配模板
+            HOperatorSet.ReadShapeModel(templateImagePath, out _modelID);
 
-            //HOperatorSet.GenRectangle2(out ho_ModelRegion, 1574.75, 1664.15, (new HTuple(91.8017)).TupleRad(), 180.773, 113.322);
+            // 创建条码模型（只创建一次，运行时复用）
+            HOperatorSet.CreateBarCodeModel(new HTuple(), new HTuple(), out _barCodeHandle);
 
-            //HOperatorSet.GenRectangle2(out ho__TmpRegion, 1574.12, 1655.95, (new HTuple(-87.1494)).TupleRad(), 138.614, 69.588);
-
-            //HObject ExpTmpOutVar_0;
-            //HOperatorSet.Difference(ho_ModelRegion, ho__TmpRegion, out ExpTmpOutVar_0);
-            //ho_ModelRegion.Dispose();
-            //ho_ModelRegion = ExpTmpOutVar_0;
-            ////Matching 01: Reduce the model template
-            //ho_TemplateImage.Dispose();
-            //HOperatorSet.ReduceDomain(ho_Image, ho_ModelRegion, out ho_TemplateImage);
-            ////
-            ////Matching 01: Create and train the shape model
-            //hv_ModelID.Dispose();
-            //HOperatorSet.CreateGenericShapeModel(out hv_ModelID);
-            ////Matching 01: set the model parameters
-            //HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "contrast_high", 71);
-            //HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "contrast_low", 44);
-            //HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "metric", "use_polarity");
-            //HOperatorSet.TrainGenericShapeModel(ho_TemplateImage, hv_ModelID);
-
-
-            //ho_ModelRegion.Dispose();
-            //ho__TmpRegion.Dispose();
-
-            HOperatorSet.ReadShapeModel(templateImagePath, out hv_ModelID);
-        
+            var cfg = AppConfig.Current.Detection;
+            HOperatorSet.SetBarCodeParam(_barCodeHandle, "element_size_min", cfg.BarcodeElementSizeMin);
+            HOperatorSet.SetBarCodeParam(_barCodeHandle, "element_size_max", cfg.BarcodeElementSizeMax);
+            HOperatorSet.SetBarCodeParam(_barCodeHandle, "orientation", cfg.BarcodeOrientation);
+            HOperatorSet.SetBarCodeParam(_barCodeHandle, "stop_after_result_num", 1);
         }
-        public void RunOneImage(string imagePath, out BitmapSource wpfImage, out string barcodeStr, out string statusStr,
+
+        /// <summary>
+        /// 执行单张图像检测：形状匹配 → ROI 裁剪 → 条码识别
+        /// </summary>
+        public void RunOneImage(string imagePath, out BitmapSource wpfImage,
+            out string barcodeStr, out string statusStr,
             out double centerRow, out double centerCol)
         {
             wpfImage = null;
             barcodeStr = "";
-            statusStr = "";
+            statusStr = "NG";
             centerRow = 0;
             centerCol = 0;
-            using (HDevDisposeHelper dh = new HDevDisposeHelper())
+
+            var cfg = AppConfig.Current.Detection;
+
+            // 局部变量声明（不再使用实例字段，保证线程安全）
+            HObject ho_Image = null;
+            HObject ho_ROI = null;
+            HObject ho_ReducedImage = null;
+            HObject ho_SymbolRegions = null;
+
+            try
             {
-                
+                // 1. 读取图像
                 HOperatorSet.ReadImage(out ho_Image, imagePath);
-            }
 
-            //threshold (Image, Region, 200, 255)
-            //模糊去噪
-            //closing_circle (Region, RegionClosing, 12)
+                // 2. 设置匹配参数（从配置读取）
+                HOperatorSet.SetGenericShapeModelParam(_modelID, "min_score", cfg.MinScore);
+                HOperatorSet.SetGenericShapeModelParam(_modelID, "num_matches", cfg.NumMatches);
+                HOperatorSet.SetGenericShapeModelParam(_modelID, "border_shape_models", "false");
 
-            //--- 2. 实时匹配查找 (放在循环内部) ---
-            HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "min_score", 0.65);
-            HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "num_matches", 1);
-            HOperatorSet.SetGenericShapeModelParam(hv_ModelID, "border_shape_models",
-                "false");
+                // 3. 执行形状匹配
+                HTuple hv_MatchResultID, hv_NumMatchResult;
+                HOperatorSet.FindGenericShapeModel(ho_Image, _modelID,
+                    out hv_MatchResultID, out hv_NumMatchResult);
 
-            //用当前读到的图片进行搜索
-            hv_MatchResultID.Dispose(); hv_NumMatchResult.Dispose();
-            HOperatorSet.FindGenericShapeModel(ho_Image, hv_ModelID, out hv_MatchResultID,
-                out hv_NumMatchResult);
+                // 默认坐标（匹配失败时使用）
+                centerRow = 500;
+                centerCol = 500;
 
-            //获取匹配结果的中心坐标（如果没匹配到，给个默认坐标，免得ROI画崩溃）
-            hv_Row.Dispose();
-            hv_Row = 500;
-            hv_Column.Dispose();
-            hv_Column = 500;
-            if ((int)(new HTuple(hv_NumMatchResult.TupleGreater(0))) != 0)
-            {
-                hv_Row.Dispose();
-                HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "row", out hv_Row);
-                hv_Column.Dispose();
-                HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "column",
-                    out hv_Column);
-                hv_score.Dispose();
-                HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "score", out hv_score);
-
-                //条码检测
-                using (HDevDisposeHelper dh = new HDevDisposeHelper())
+                // 4. 处理匹配结果
+                if ((int)(new HTuple(hv_NumMatchResult.TupleGreater(0))) != 0)
                 {
-                   
-                    HOperatorSet.GenRectangle1(out ho_ROI_0, hv_Row - 300, hv_Column - 300, hv_Row + 300,
-                        hv_Column + 300);
-                }
-                
-                HOperatorSet.ReduceDomain(ho_Image, ho_ROI_0, out ho_ScanROI_Matched);
+                    // 获取匹配中心坐标
+                    HTuple hv_Row, hv_Column, hv_Score;
+                    HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "row", out hv_Row);
+                    HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "column", out hv_Column);
+                    HOperatorSet.GetGenericShapeModelResult(hv_MatchResultID, 0, "score", out hv_Score);
 
-                //创建一个条码读取模版
-                hv_BarCodeHandle.Dispose();
-                HOperatorSet.CreateBarCodeModel(new HTuple(), new HTuple(), out hv_BarCodeHandle);
+                    centerRow = hv_Row.ToDArr()[0];
+                    centerCol = hv_Column.ToDArr()[0];
 
-                //核心致命参数配置（极大提高识别率）：
-                HOperatorSet.SetBarCodeParam(hv_BarCodeHandle, "element_size_min", 1);
-                //允许极细的条
-                HOperatorSet.SetBarCodeParam(hv_BarCodeHandle, "element_size_max", 30);
-                //允许极宽的条 (应对镜头距离不一致)
-                HOperatorSet.SetBarCodeParam(hv_BarCodeHandle, "orientation", 45);
-                //允许45角度
+                    // 5. 生成 ROI 区域并裁剪
+                    int offset = cfg.RoiOffset;
+                    ho_ROI = HObjectExtensions.GenRectangle1(
+                        centerRow - offset, centerCol - offset,
+                        centerRow + offset, centerCol + offset);
+                    ho_ReducedImage = ho_Image.ReduceDomain(ho_ROI);
 
+                    // 6. 条码识别（复用已创建的模型）
+                    HTuple hv_DecodedDataStrings;
+                    HOperatorSet.FindBarCode(ho_ReducedImage, out ho_SymbolRegions,
+                        _barCodeHandle, cfg.BarcodeType, out hv_DecodedDataStrings);
 
-                //成功解码到一个条形码后将解码停止
-                HOperatorSet.SetBarCodeParam(hv_BarCodeHandle, "stop_after_result_num", 1);
+                    // 7. 判断结果
+                    if (hv_DecodedDataStrings.Length > 0)
+                    {
+                        barcodeStr = hv_DecodedDataStrings.ToString();
+                        statusStr = "OK";
+                    }
+                    else
+                    {
+                        barcodeStr = "";
+                        statusStr = "NG";
+                    }
 
-                
-                HOperatorSet.FindBarCode(ho_ScanROI_Matched, out ho_SymbolRegions, hv_BarCodeHandle,
-                    "Code 128", out hv_DecodedDataStrings);
-
-                //删除条码模版并清除分配的内存
-                HOperatorSet.ClearBarCodeModel(hv_BarCodeHandle);
-                //获取解码结果
-                barcodeStr = hv_DecodedDataStrings.ToString();
-                //判断条件
-                if ((int)(new HTuple((new HTuple(hv_DecodedDataStrings.TupleLength())).TupleGreater(
-                    0))) != 0)
-                {
-                    hv_result1.Dispose();
-                    hv_result1 = 1;
-                    hv_resultstring1.Dispose();
-                    hv_resultstring1 = "OK";
-                    
-
+                    // 释放匹配结果
+                    hv_MatchResultID.Dispose();
+                    hv_Score.Dispose();
                 }
                 else
                 {
-                    hv_result1.Dispose();
-                    hv_result1 = 0;
-                    hv_resultstring1.Dispose();
-                    hv_resultstring1 = "NG";
-                    
+                    statusStr = "NG";
+                    barcodeStr = "";
                 }
-                //获取状态结果
-                statusStr = hv_resultstring1.ToString();
-                barcodeStr = hv_DecodedDataStrings.ToString();
-                centerRow = hv_Row.ToDArr()[0]; // 取出找到的标签中心点行坐标
-                centerCol = hv_Column.ToDArr()[0];
+            }
+            catch (Exception ex)
+            {
+                statusStr = "NG";
+                barcodeStr = "";
+                throw new Exception($"形状匹配/条码检测失败: {ex.Message}", ex);
+            }
+            finally
+            {
+                // 确保所有局部 HObject 被释放
+                HObjectExtensions.SafeDisposeAll(ho_Image, ho_ROI, ho_ReducedImage, ho_SymbolRegions);
+            }
+        }
 
-                // 以下代码是固定公式，用于给您的 WPF 界面显示图
-                //HOperatorSet.GetImagePointer1(ho_Image, out HTuple hv_Pointer, out HTuple hv_Type, out HTuple hv_Width, out HTuple hv_Height);
-                //wpfImage = BitmapSource.Create(hv_Width, hv_Height, 96, 96, PixelFormats.Gray8, null, hv_Pointer, (int)(hv_Width * hv_Height));
-
-                ho_Image.Dispose();
-                ho_ROI_0.Dispose();
-                ho_ScanROI_Matched.Dispose();
-                ho_SymbolRegions.Dispose(); hv_DecodedDataStrings.Dispose();
+        /// <summary>
+        /// 释放模型资源
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                try
+                {
+                    if (_modelID != null) _modelID.Dispose();
+                    if (_barCodeHandle != null)
+                    {
+                        HOperatorSet.ClearBarCodeModel(_barCodeHandle);
+                        _barCodeHandle.Dispose();
+                    }
+                }
+                catch { }
+                _disposed = true;
             }
         }
     }

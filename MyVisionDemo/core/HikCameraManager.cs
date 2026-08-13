@@ -1,28 +1,40 @@
-﻿using HalconDotNet;
+using HalconDotNet;
 using MvCamCtrl.NET;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows;
-using System.Windows.Media.Media3D;
 
 namespace MyVisionDemo
 {
+    /// <summary>
+    /// 海康相机管理器
+    /// 优化点：
+    /// 1. GenImage1 替代 GenImage1Extern（拷贝数据，防止 use-after-free）
+    /// 2. CancellationToken 替代 Thread.Abort（安全取消）
+    /// 3. 移除 GC.Collect（改用规范 Dispose）
+    /// 4. 异常处理改进（不再吞掉异常）
+    /// </summary>
     public class HikCameraManager
     {
         private MyCamera m_pMyCamera = new MyCamera();
         private bool m_bGrabbing = false;
         private Thread m_CaptureThread;
+        private CancellationTokenSource m_cts;
 
-        // 用于通知 WPF 界面：拍到图了，请进行检测！
+        /// <summary>拍到图了，通知 WPF 界面进行检测</summary>
         public event Action<HImage> OnImageCaptured;
 
-        // 1. 获取相机列表（用于UI下拉框填充）
+        /// <summary>采集异常通知</summary>
+        public event Action<string> OnError;
+
+        // 1. 获取相机列表
         public MyCamera.MV_CC_DEVICE_INFO_LIST GetDeviceList()
         {
             var deviceList = new MyCamera.MV_CC_DEVICE_INFO_LIST();
-            int nRet = MyCamera.MV_CC_EnumDevices_NET(MyCamera.MV_GIGE_DEVICE | MyCamera.MV_USB_DEVICE, ref deviceList);
-            if (nRet != MyCamera.MV_OK) return new MyCamera.MV_CC_DEVICE_INFO_LIST();
+            int nRet = MyCamera.MV_CC_EnumDevices_NET(
+                MyCamera.MV_GIGE_DEVICE | MyCamera.MV_USB_DEVICE, ref deviceList);
+            if (nRet != MyCamera.MV_OK)
+                return new MyCamera.MV_CC_DEVICE_INFO_LIST();
             return deviceList;
         }
 
@@ -35,7 +47,6 @@ namespace MyVisionDemo
             nRet = m_pMyCamera.MV_CC_OpenDevice_NET();
             if (nRet != MyCamera.MV_OK) return false;
 
-            // 设为连续采集模式
             m_pMyCamera.MV_CC_SetEnumValue_NET("AcquisitionMode", 2);
             m_pMyCamera.MV_CC_SetEnumValue_NET("TriggerMode", 0);
             return true;
@@ -49,36 +60,56 @@ namespace MyVisionDemo
             if (nRet != MyCamera.MV_OK) return;
 
             m_bGrabbing = true;
-            m_CaptureThread = new Thread(CaptureLoop);
-            m_CaptureThread.Start(m_pMyCamera);
+            m_cts = new CancellationTokenSource();
+            m_CaptureThread = new Thread(() => CaptureLoop(m_pMyCamera, m_cts.Token))
+            {
+                IsBackground = true
+            };
+            m_CaptureThread.Start();
         }
 
-        // 4. 后台采图线程（核心转换部分：从内存指针 -> Halcon HImage）
-        private void CaptureLoop(object obj)
+        // 4. 后台采图线程
+        private void CaptureLoop(MyCamera device, CancellationToken token)
         {
-            MyCamera device = obj as MyCamera;
             MyCamera.MV_FRAME_OUT stFrameOut = new MyCamera.MV_FRAME_OUT();
 
-            while (m_bGrabbing)
+            while (m_bGrabbing && !token.IsCancellationRequested)
             {
                 int nRet = device.MV_CC_GetImageBuffer_NET(ref stFrameOut, 100);
                 if (nRet == MyCamera.MV_OK)
                 {
                     try
                     {
-                        HObject hobj;
-                        // 我们直接简化处理，假设您是用黑白（Mono8）相机
-                        HOperatorSet.GenImage1Extern(out hobj, "byte", stFrameOut.stFrameInfo.nWidth,
-                                                    stFrameOut.stFrameInfo.nHeight, stFrameOut.pBufAddr, IntPtr.Zero);
+                        int width = stFrameOut.stFrameInfo.nWidth;
+                        int height = stFrameOut.stFrameInfo.nHeight;
+                        int bufSize = width * height;
 
-                        HImage image = new HImage(hobj);
+                        // 【关键修复】拷贝数据到托管内存，再创建 HImage
+                        // 原 GenImage1Extern 只是引用指针，FreeImageBuffer 后会导致 use-after-free
+                        byte[] imageBuffer = new byte[bufSize];
+                        Marshal.Copy(stFrameOut.pBufAddr, imageBuffer, 0, bufSize);
 
-                        // 触发事件，把HImage发给WPF主界面
+                        // 使用 GenImage1 创建独立的 HImage（拥有自己的数据副本）
+                        HImage image;
+                        GCHandle handle = GCHandle.Alloc(imageBuffer, GCHandleType.Pinned);
+                        try
+                        {
+                            HOperatorSet.GenImage1(out HObject hobj, "byte", width, height, handle.AddrOfPinnedObject());
+                            image = new HImage(hobj);
+                            hobj.Dispose();
+                        }
+                        finally
+                        {
+                            handle.Free();
+                        }
+
+                        // 通知 UI 线程（HImage 有独立数据副本，安全传递）
                         OnImageCaptured?.Invoke(image);
-
-                        hobj.Dispose();
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        OnError?.Invoke($"图像转换异常: {ex.Message}");
+                    }
                     finally
                     {
                         device.MV_CC_FreeImageBuffer_NET(ref stFrameOut);
@@ -92,38 +123,34 @@ namespace MyVisionDemo
         {
             try
             {
-                // 1. 标记停止，让采图循环退出
                 m_bGrabbing = false;
 
-                // 2. 安全停止抓图（如果相机还活着）
+                // 通过 CancellationToken 通知线程退出
+                if (m_cts != null)
+                {
+                    m_cts.Cancel();
+                    m_cts.Dispose();
+                    m_cts = null;
+                }
+
                 if (m_pMyCamera != null)
                 {
-                    // 官方代码：停止抓图
                     m_pMyCamera.MV_CC_StopGrabbing_NET();
-
-                    // 官方代码：关闭设备
                     m_pMyCamera.MV_CC_CloseDevice_NET();
                 }
 
-                // 3. 强制中断后台采图线程（防止线程在 SDK 底层死锁）
+                // 等待线程退出（不再使用 Thread.Abort）
                 if (m_CaptureThread != null && m_CaptureThread.IsAlive)
                 {
-                    // 给它 1 秒钟优雅退出的时间
-                    if (!m_CaptureThread.Join(1000))
-                    {
-                        // 如果 1 秒后它还不死，说明卡在 SDK 里了，直接暴力中止！
-                        m_CaptureThread.Abort();
-                    }
-                    m_CaptureThread = null;
+                    m_CaptureThread.Join(2000);
                 }
+                m_CaptureThread = null;
 
-                // 4. 强制通知 .NET 释放非托管内存
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
+                // 不再手动 GC.Collect，依靠规范的 Dispose 管理内存
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 如果官方代码报错，直接忽略，保证程序不死
+                OnError?.Invoke($"停止采集异常: {ex.Message}");
             }
         }
     }

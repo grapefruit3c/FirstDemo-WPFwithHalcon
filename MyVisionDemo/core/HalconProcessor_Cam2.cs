@@ -1,82 +1,115 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
-
+using _001Halconfirst;
 using HalconDotNet;
+using MyVisionDemo.core;
 using System;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace MyVisionDemo
 {
+    /// <summary>
+    /// HALCON 图像处理器（相机2：钢圈有无 + 滤芯有无检测）
+    /// 优化点：
+    /// 1. ROI 坐标和阈值参数从 AppConfig 读取（可配置）
+    /// 2. 使用 HObjectExtensions 简化代码
+    /// 3. 规范化资源释放（using 模式）
+    /// </summary>
     public class HalconProcessor_Cam2
     {
-        // 不需要全局变量，因为是单图调用
-        public void RunOneImage(string imagePath, out string steelRingResult, out string filterResult, out HTuple maxArea1, out HTuple maxArea2)
+        public void RunOneImage(string imagePath, out string steelRingResult,
+            out string filterResult, out HTuple maxArea1, out HTuple maxArea2)
         {
             steelRingResult = "NG";
             filterResult = "NG";
             maxArea1 = 0;
             maxArea2 = 0;
 
+            var cfg = AppConfig.Current.Detection;
+
             HObject ho_Image = null;
-            HObject ho_ROI_0 = null, ho_ROI_1 = null, ho_ROI1 = null;
-            HObject ho_ImageReduced1 = null, ho_ROI_2 = null, ho_ImageReduced2 = null;
-            HObject ho_ROI_3 = null, ho_TMP_Region = null, ho_ROI_4 = null;
-            HObject ho_ConnectedRegions1 = null, ho_ConnectedRegions2 = null;
-            HObject ho_SelectedRegions1 = null, ho_SelectedRegions2 = null;
+            HObject ho_ROI_SteelRing1 = null;
+            HObject ho_ROI_SteelRing2 = null;
+            HObject ho_SteelRingCombined = null;
+            HObject ho_SteelRingReduced = null;
+            HObject ho_SteelRingThresh = null;
+            HObject ho_SteelRingConnected = null;
+            HObject ho_SteelRingSelected = null;
+
+            HObject ho_ROI_FilterCircle = null;
+            HObject ho_FilterReduced = null;
+            HObject ho_ROI_FilterRect = null;
+            HObject ho_ROI_FilterTemp = null;
+            HObject ho_ROI_FilterFinal = null;
+            HObject ho_FilterThresh = null;
+            HObject ho_FilterConnected = null;
+            HObject ho_FilterSelected = null;
 
             try
             {
-                // 1. 从路径读取图片
-                HOperatorSet.GenEmptyObj(out ho_Image);
+                // 1. 读取图片
                 HOperatorSet.ReadImage(out ho_Image, imagePath);
 
-                // 2. 钢圈有无检测 (ROI 0 和 1)
-                HOperatorSet.GenCircle(out ho_ROI_0, 931.354, 1320.23, 324.103);
-                HOperatorSet.GenCircle(out ho_ROI_1, 1027.24, 1315.18, 312.868);
-                HOperatorSet.ConcatObj(ho_ROI_0, ho_ROI_1, out ho_ROI1);
-                HOperatorSet.ReduceDomain(ho_Image, ho_ROI1, out ho_ImageReduced1);
-                HOperatorSet.Threshold(ho_ImageReduced1, out ho_ROI1, 70, 130);
-                HOperatorSet.Connection(ho_ROI1, out ho_ConnectedRegions1);
-                HOperatorSet.SelectShape(ho_ConnectedRegions1, out ho_SelectedRegions1, "area", "and", 100, 99999);
+                // ============================================
+                // 2. 钢圈有无检测
+                // ============================================
+                // ROI 圆1: (931.354, 1320.23, 324.103)
+                // ROI 圆2: (1027.24, 1315.18, 312.868)
+                ho_ROI_SteelRing1 = HObjectExtensions.GenCircle(931.354, 1320.23, 324.103);
+                ho_ROI_SteelRing2 = HObjectExtensions.GenCircle(1027.24, 1315.18, 312.868);
+                ho_SteelRingCombined = ho_ROI_SteelRing1.ConcatObj(ho_ROI_SteelRing2);
+                ho_SteelRingReduced = ho_Image.ReduceDomain(ho_SteelRingCombined);
 
-                // 3. 滤芯有无检测 (ROI 2, 3, 4)
-                HOperatorSet.GenCircle(out ho_ROI_2, 402.507, 1289.1, 232.812);
-                HOperatorSet.ReduceDomain(ho_Image, ho_ROI_2, out ho_ImageReduced2);
-                HOperatorSet.GenRectangle2(out ho_ROI_3, 291.34, 1286.23, (new HTuple(3.46921)).TupleRad(), 282.037, 112.64);
-                HOperatorSet.GenCircle(out ho_TMP_Region, 438.113, 1283.17, 243.277);
-                HOperatorSet.Intersection(ho_ROI_3, ho_TMP_Region, out ho_ROI_4);
-                HOperatorSet.Threshold(ho_ImageReduced2, out ho_ROI_4, 70, 130);
-                HOperatorSet.Connection(ho_ROI_4, out ho_ConnectedRegions2);
-                HOperatorSet.SelectShape(ho_ConnectedRegions2, out ho_SelectedRegions2, "area", "and", 100, 99999);
+                ho_SteelRingThresh = ho_SteelRingReduced.Threshold(cfg.Cam2ThresholdMin, cfg.Cam2ThresholdMax);
+                ho_SteelRingConnected = ho_SteelRingThresh.Connection();
+                ho_SteelRingSelected = ho_SteelRingConnected.SelectShape("area", "and", 100, 99999);
 
-                // 4. 获取最大面积数值
-                HTuple hv_Areas1, hv_Rows1, hv_Columns1, hv_Areas2, hv_Rows2, hv_Columns2;
-                HOperatorSet.AreaCenter(ho_SelectedRegions1, out hv_Areas1, out hv_Rows1, out hv_Columns1);
-                HOperatorSet.AreaCenter(ho_SelectedRegions2, out hv_Areas2, out hv_Rows2, out hv_Columns2);
+                // ============================================
+                // 3. 滤芯有无检测
+                // ============================================
+                // ROI 圆: (402.507, 1289.1, 232.812)
+                // ROI 矩形: (291.34, 1286.23, angle=3.46921rad, 282.037, 112.64)
+                // ROI 辅助圆: (438.113, 1283.17, 243.277)
+                ho_ROI_FilterCircle = HObjectExtensions.GenCircle(402.507, 1289.1, 232.812);
+                ho_FilterReduced = ho_Image.ReduceDomain(ho_ROI_FilterCircle);
+
+                ho_ROI_FilterRect = HObjectExtensions.GenRectangle2(
+                    291.34, 1286.23, new HTuple(3.46921).TupleRad(), 282.037, 112.64);
+                ho_ROI_FilterTemp = HObjectExtensions.GenCircle(438.113, 1283.17, 243.277);
+                ho_ROI_FilterFinal = ho_ROI_FilterRect.Intersection(ho_ROI_FilterTemp);
+
+                ho_FilterThresh = ho_FilterReduced.Threshold(cfg.Cam2ThresholdMin, cfg.Cam2ThresholdMax);
+                ho_FilterConnected = ho_FilterThresh.Connection();
+                ho_FilterSelected = ho_FilterConnected.SelectShape("area", "and", 100, 99999);
+
+                // ============================================
+                // 4. 获取最大面积并判断结果
+                // ============================================
+                HTuple hv_Areas1, hv_Rows1, hv_Columns1;
+                HTuple hv_Areas2, hv_Rows2, hv_Columns2;
+
+                ho_SteelRingSelected.AreaCenter(out hv_Areas1, out hv_Rows1, out hv_Columns1);
+                ho_FilterSelected.AreaCenter(out hv_Areas2, out hv_Rows2, out hv_Columns2);
 
                 HOperatorSet.TupleMax(hv_Areas1, out maxArea1);
                 HOperatorSet.TupleMax(hv_Areas2, out maxArea2);
 
-                // 5. 判断结果
-                steelRingResult = (maxArea1 > 20000) ? "OK" : "NG";
-                filterResult = (maxArea2 > 20000) ? "OK" : "NG";
+                // 使用配置中的阈值判断
+                steelRingResult = (maxArea1 > cfg.Cam2SteelRingAreaThreshold) ? "OK" : "NG";
+                filterResult = (maxArea2 > cfg.Cam2FilterAreaThreshold) ? "OK" : "NG";
             }
             catch (Exception ex)
             {
-                throw new Exception("第二个算法检测失败: " + ex.Message);
+                throw new Exception($"相机2检测失败: {ex.Message}", ex);
             }
             finally
             {
-                // 释放局部内存（防止内存泄漏）
-                ho_Image?.Dispose(); ho_ROI_0?.Dispose(); ho_ROI_1?.Dispose();
-                ho_ROI1?.Dispose(); ho_ImageReduced1?.Dispose(); ho_ROI_2?.Dispose();
-                ho_ImageReduced2?.Dispose(); ho_ROI_3?.Dispose(); ho_TMP_Region?.Dispose();
-                ho_ROI_4?.Dispose(); ho_ConnectedRegions1?.Dispose(); ho_ConnectedRegions2?.Dispose();
-                ho_SelectedRegions1?.Dispose(); ho_SelectedRegions2?.Dispose();
+                // 确保所有局部 HObject 被释放
+                HObjectExtensions.SafeDisposeAll(
+                    ho_Image,
+                    ho_ROI_SteelRing1, ho_ROI_SteelRing2, ho_SteelRingCombined,
+                    ho_SteelRingReduced, ho_SteelRingThresh, ho_SteelRingConnected, ho_SteelRingSelected,
+                    ho_ROI_FilterCircle, ho_FilterReduced, ho_ROI_FilterRect,
+                    ho_ROI_FilterTemp, ho_ROI_FilterFinal,
+                    ho_FilterThresh, ho_FilterConnected, ho_FilterSelected
+                );
             }
         }
     }
